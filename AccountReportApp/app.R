@@ -75,8 +75,15 @@ ui <- fluidPage(
 					 					 		)
 					 					 	)
 					 					 ), # end of wellPanel
-					 					 "All Expenses",
-					 					 tableOutput("expUS")
+					 					 hr(),
+					 					 fluidRow(column(12, align="center", h1("ALL EXPENSES"))),
+					 					 radioButtons("view", "", choices = c("All", "Collapsed"), inline=TRUE),
+					 					 hr(),
+					 					 h3("US Expenses"),
+					 					 dataTableOutput("usaExpTable"),
+					 					 hr(),
+					 					 h3("CAN Expenses"),
+					 					 dataTableOutput("canExpTable")
 					 	) # end expense tab
 					 ) # end tabset
 		) # end column with tabsets
@@ -188,6 +195,35 @@ server <- function(input, output){
 				 "<b>Fees:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="FEES"], "<br>",
 				 "<b>Transfer:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="TRANSFER"])
 		
+	})
+	
+	output$usaExpTable <- renderDataTable({
+		req(input$bizData)
+		out <- biz$USA %>%
+								dplyr::select(Date, Category, BankNote, Set, Amount) %>%
+								dplyr::arrange(Date)
+		if (input$view == "Collapsed"){
+			out <- dplyr::group_by(out, Category) %>%
+				dplyr::summarize(ExpenseSet = unique(Set),
+												 CategoryTotal = round(sum(Amount), 2)) %>%
+				dplyr::arrange(ExpenseSet)
+		}
+		datatable(out)
+			
+	})
+	
+	output$canExpTable <- renderDataTable({
+		req(input$bizData)
+		out <- biz$CAN %>%
+										 	dplyr::select(Date, Category, BankNote, Set, Amount) %>%
+										 	dplyr::arrange(Date)
+		if (input$view == "Collapsed"){
+			out <- dplyr::group_by(out, Category) %>%
+				dplyr::summarize(ExpenseSet = unique(Set),
+												 CategoryTotal = round(sum(Amount), 2)) %>%
+				dplyr::arrange(ExpenseSet)
+		}
+		datatable(out)
 	})
 	
 	# Report Generator ----
