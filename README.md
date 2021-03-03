@@ -7,22 +7,22 @@ This software is not intended to perform all the task and reporting of a full ac
 
 Eventually, this template will include materials to generate Annual, Year-To-Date, and Quarterly profit and loss reports on a cash basis.
 
-# Shiny Application
+## Shiny Application
 
 The application reads a user uploaded Excel file of accounting data to provide (1) visual summaries of income and expenses and (2) an opportunity to download selected reports.
 
-## Input Data
+### Input Data
 
-I've provided an example input file **AccountReports/AccountReportApp/Data/Demo_Accounts.xlsx**.  The Shiny application reads data from the first three sheets (by name).  These sheets are:
+I've provided an example input file **AccountReportApp/Data/Demo_Accounts.xlsx**.  The Shiny application reads data from the first three sheets.  These sheets are:
 
  - *Income*: includes income from all sources, all currencies
  - *Expenses_US*: all US currency expenses
  - *Expenses_CAN*: all Canadian currency expenses
 
-The remaining sheets are lists of lookup tables used to manage data entry into the Excel and other reference resources.
+The remaining sheets are lists of lookup tables used to manage data entry into the Excel and other reference resources.  
 
-## Report Output
+### Report Output
 
-I've included an example report template **AccountReports/AccountReportApp/Data/YearToDate_Account_Report.Rmd**.  The app includes code to use this template to generate an MS Word document summarizing Year to Date income and expenses.  The default name of the generated report is YTD_Report.doc and the user has the opportunity to rename and save the file wherever they choose.
+I've included an example report template **AccountReportApp/Templates/YearToDate_Account_Report.Rmd**.  The app includes code to use this template to generate an MS Word document summarizing Year to Date income and expenses.  The default name of the generated report is **YTD_Report.doc** and the user has the opportunity to rename and save the file wherever they choose.
 
 
