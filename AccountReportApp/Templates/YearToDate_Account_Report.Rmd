@@ -1,0 +1,28 @@
+---
+title: "Profit & Loss"
+subtitle: "Year-to-Date"
+output: word_document
+params:
+  name: NA
+  incStatus: NA
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+**Report requested by:** `r params$name`
+
+**Financial status as of:** `r Sys.Date()`
+
+This report includes income and expense tracking from all accounts, US and Canadian.  Income is reported based on payment date to align with tax liability.  Expenses are reported based on withdrawal date (checking) or transaction date (credit).
+
+This document serves an example of how to render a custom report from Shiny.
+
+# Income
+
+```{r incomeSummary, echo=FALSE}
+as.data.frame(params$incStatus)
+```
+
