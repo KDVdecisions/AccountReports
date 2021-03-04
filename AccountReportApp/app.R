@@ -10,6 +10,9 @@ flags <- c(
 	"https://lipis.github.io/flag-icon-css/flags/4x3/eu.svg"
 )
 
+source("R/ar_paidInvoices.R")
+source("R/ar_pendInvoices.R")
+
 ui <- fluidPage(
 	tags$head(tags$style('h1 {color:red;}')),
 	fluidRow(
@@ -57,6 +60,8 @@ ui <- fluidPage(
 					 					 h3("Pending"),
 					 					 dataTableOutput("pendIncTable")
 					 	),# end income tab 
+					 	
+					 	# Expense tab ----
 					 	tabPanel(title = "EXPENSES",
 					 					 wellPanel(
 					 					 	fluidRow(column(12, align="center", h1("SUMMARY"))),
@@ -76,8 +81,12 @@ ui <- fluidPage(
 					 					 	)
 					 					 ), # end of wellPanel
 					 					 hr(),
-					 					 fluidRow(column(12, align="center", h1("ALL EXPENSES"))),
-					 					 radioButtons("view", "", choices = c("All", "Collapsed"), inline=TRUE),
+					 					 fluidRow(
+					 					 	column(12, align="center", 
+					 					 				 h1("ALL EXPENSES"),
+					 					 				 radioButtons("view", "", choices = c("All", "Collapsed"), inline=TRUE),
+					 					 	)
+					 					 ),
 					 					 hr(),
 					 					 h3("US Expenses"),
 					 					 dataTableOutput("usaExpTable"),
@@ -89,10 +98,12 @@ ui <- fluidPage(
 		) # end column with tabsets
 	) # end large fluid row
 )
+# end of ui ----
 
 server <- function(input, output){
+
 	
-	# Organize uploaded data
+	# Organize uploaded data ----
 	biz <- reactiveValues()
 	
 	observeEvent(input$bizData,{
@@ -116,18 +127,12 @@ server <- function(input, output){
 	
 	output$paidIncTable <- renderDataTable({
 		req(input$bizData)
-		datatable(biz$INCOME %>%
-								dplyr::filter(!is.na(PayDate)) %>%
-								dplyr::select(InvNum, Client, InvAmount, InvCurrency, InvDate, PayDate, PayLocate) %>%
-								dplyr::arrange(InvDate))
+		datatable(ar_paidInvoices(biz$INCOME))
 	})
 	
 	output$pendIncTable <- renderDataTable({
 		req(input$bizData)
-		datatable(biz$INCOME %>%
-								dplyr::filter(is.na(PayDate)) %>%
-								dplyr::select(InvNum, Client, InvAmount, InvCurrency, InvDate) %>%
-								dplyr::arrange(InvDate))
+		datatable(ar_pendInvoices(biz$INCOME))
 	})
 	
 	incStatus <- reactive({
