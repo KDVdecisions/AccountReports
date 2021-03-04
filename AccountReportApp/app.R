@@ -115,11 +115,9 @@ server <- function(input, output){
 														 col_types = c("date", "text", "text", "numeric", "numeric", 
 														 							"text", "date", "numeric", "text", "text", 
 														 							"numeric", "numeric"))
-		biz$USA <- read_excel(file$datapath, sheet=2,
-													col_types = c("date", "numeric", rep("text", times=5)))
-		biz$CAN <- read_excel(file$datapath, sheet=3,
-													col_types = c("date", "numeric", rep("text", times=5)))
-		biz$CLIENTS <- read_excel(file$datapath, sheet=4,
+		biz$EXPENSES <- read_excel(file$datapath, sheet="Expenses",
+													col_types = c("date", rep("text", times=6), "numeric", "text"))
+		biz$CLIENTS <- read_excel(file$datapath, sheet="Clients",
 															col_types = c("numeric", rep("text", times=7)))
 	})
 	
@@ -170,48 +168,52 @@ server <- function(input, output){
 	
 	expUsaStatus <- reactive({
 		req(input$bizData)
-		usaExp <- biz$USA %>%
-			dplyr::group_by(Set) %>%
-			dplyr::summarize(TOTAL = round(sum(Amount),2))
+		usaExp <- biz$EXPENSES %>%
+			dplyr::filter(ExpCurrency == "US") %>%
+			dplyr::group_by(ExpClass) %>%
+			dplyr::summarize(TOTAL = round(sum(ExpAmount),2))
 	})
 	
 	expCanStatus <- reactive({
-		canExp <- biz$CAN %>%
-			dplyr::group_by(Set) %>%
-			dplyr::summarize(TOTAL = round(sum(Amount),2))
+		canExp <- biz$EXPENSES %>%
+			dplyr::filter(ExpCurrency == "CAN") %>%
+			dplyr::group_by(ExpClass) %>%
+			dplyr::summarize(TOTAL = round(sum(ExpAmount),2))
 	})
 	
 	output$expCanText <- renderUI({
 		req(input$bizData)
-		HTML("<b>Office:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="OFFICE"], "<br>",
-				 "<b>Employees:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="EMPLOYEES"], "<br>",
-				 "<b>Travel:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="TRAVEL"], "<br>",
-				 "<b>Development:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="DEVELOPMENT"], "<br>",
-				 "<b>Fees:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="FEES"], "<br>",
-				 "<b>Transfer:</b>", expCanStatus()$TOTAL[expCanStatus()$Set =="TRANSFER"])
+		HTML("<b>Office:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Office"], "<br>",
+				 "<b>Employees:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Employees"], "<br>",
+				 "<b>Travel:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Travel"], "<br>",
+				 "<b>Development:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Development"], "<br>",
+				 "<b>Fees:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Service Fees"], "<br>",
+				 "<b>Taxes:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Taxes"], "<br>",
+				 "<b>Member Draw:</b>", expCanStatus()$TOTAL[expCanStatus()$ExpClass =="Member Draw"])
 		
 	})
 	output$expUsaText <- renderUI({
 		req(input$bizData)
-		HTML("<b>Office:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="OFFICE"], "<br>",
-				 "<b>Employees:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="EMPLOYEES"], "<br>",
-				 "<b>Travel:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="TRAVEL"], "<br>",
-				 "<b>Development:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="DEVELOPMENT"], "<br>",
-				 "<b>Fees:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="FEES"], "<br>",
-				 "<b>Transfer:</b>", expUsaStatus()$TOTAL[expUsaStatus()$Set =="TRANSFER"])
+		HTML("<b>Office:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Office"], "<br>",
+				 "<b>Employees:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Employees"], "<br>",
+				 "<b>Travel:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Travel"], "<br>",
+				 "<b>Development:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Development"], "<br>",
+				 "<b>Fees:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Service Fees"], "<br>",
+				 "<b>Taxes:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Taxes"], "<br>",
+				 "<b>Member Draw:</b>", expUsaStatus()$TOTAL[expUsaStatus()$ExpClass =="Member Draw"])
 		
 	})
 	
 	output$usaExpTable <- renderDataTable({
 		req(input$bizData)
-		out <- biz$USA %>%
-								dplyr::select(Date, Category, BankNote, Set, Amount) %>%
-								dplyr::arrange(Date)
+		out <- biz$EXPENSES %>%
+			dplyr::filter(ExpCurrency == "US") %>%
+								dplyr::select(ExpDate, ExpClass, ExpCategory, ExpItem, ExpAmount) %>%
+								dplyr::arrange(ExpDate)
 		if (input$view == "Collapsed"){
-			out <- dplyr::group_by(out, Category) %>%
-				dplyr::summarize(ExpenseSet = unique(Set),
-												 CategoryTotal = round(sum(Amount), 2)) %>%
-				dplyr::arrange(ExpenseSet)
+			out <- dplyr::group_by(out, ExpClass, ExpCategory) %>%
+				dplyr::summarize(CategoryTotal = round(sum(ExpAmount), 2)) %>%
+				dplyr::arrange(ExpClass)
 		}
 		datatable(out)
 			
@@ -219,14 +221,14 @@ server <- function(input, output){
 	
 	output$canExpTable <- renderDataTable({
 		req(input$bizData)
-		out <- biz$CAN %>%
-										 	dplyr::select(Date, Category, BankNote, Set, Amount) %>%
-										 	dplyr::arrange(Date)
+		out <- biz$EXPENSES %>%
+			dplyr::filter(ExpCurrency == "CAN") %>%
+			dplyr::select(ExpDate, ExpClass, ExpCategory, ExpItem, ExpAmount) %>%
+			dplyr::arrange(ExpDate)
 		if (input$view == "Collapsed"){
-			out <- dplyr::group_by(out, Category) %>%
-				dplyr::summarize(ExpenseSet = unique(Set),
-												 CategoryTotal = round(sum(Amount), 2)) %>%
-				dplyr::arrange(ExpenseSet)
+			out <- dplyr::group_by(out, ExpClass, ExpCategory) %>%
+				dplyr::summarize(CategoryTotal = round(sum(ExpAmount), 2)) %>%
+				dplyr::arrange(ExpClass)
 		}
 		datatable(out)
 	})
@@ -243,7 +245,7 @@ server <- function(input, output){
 			file.copy("Templates/YearToDate_Account_Report.Rmd", tempReport, overwrite = TRUE)
 			
 			# Set up parameters to pass to Rmd document
-			params <- list(name = input$name, incStatus = incStatus())
+			params <- list(name = input$name, incData = biz$INCOME, expData = biz$EXPENSES)
 			
 			# Knit the document, passing in the `params` list, and eval it in a
 			# child of the global environment (this isolates the code in the document
