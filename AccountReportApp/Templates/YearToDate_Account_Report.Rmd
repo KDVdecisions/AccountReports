@@ -124,11 +124,11 @@ TOTAL EXPENSES: `r paste("$", formatC(totalExp, big.mark=",", format = "d"), "US
 
 ## Net Income
 
-**TOTAL NET INCOME:** `r paste("$",formatC(netInc, big.mark=",", format = "d", "US dollars"))`
+**TOTAL NET INCOME:** `r paste("$",formatC(netInc, big.mark=",", format = "d"), "US dollars")`
 
-Of the net income, `r paste("$",formatC(totalMember, big.mark=",", format = "d", "US dollars"))` was transferred to personal accounts as Member Draws.
+Of the net income, `r paste("$",formatC(totalMember, big.mark=",", format = "d"), "US dollars")` was transferred to personal accounts as Member Draws.
 
-The final business balance for this period, after subtracting Member Draws, is `r paste("$",formatC(bizProfits, big.mark=",", format = "d", "US dollars"))`.
+The final business balance for this period, after subtracting Member Draws, is `r paste("$",formatC(bizProfits, big.mark=",", format = "d"), "US dollars")`.
 
 *Note that all final values in US dollars are near estimates as the exchange rate is applied to income and expenses that remain in the original currency.  Estimates here are solely for the purposes of estimating business value and tax liability in US currency.*
 
