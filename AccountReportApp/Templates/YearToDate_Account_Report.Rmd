@@ -25,19 +25,22 @@ This document serves an example of how to render a custom report from Shiny.
 ## Income
 
 ```{r incometable, echo=FALSE}
-incData <- as.data.frame(params$income) %>%
-	dplyr::arrange(PayCurrency, PayDate) %>%
-	dplyr::select(PayDate, Client, InvNum, PayAmount, PayCurrency)
+incData <- as.data.frame(params$income) 
+
+# Profit in cash accounting is only money received, so remove pending payments
 profit <- incData %>%
-	dplyr::filter(!is.na(PayAmount)) # this removes rows of pending payments
-knitr::kable(incData)
+	dplyr::arrange(PayCurrency, PayDate) %>%
+	dplyr::select(PayDate, Client, InvNum, PayAmount, PayCurrency) %>%
+	dplyr::filter(!is.na(PayDate))
+knitr::kable(profit)
 ```
 
-```{r incomeTotals, include=FALSE}
+```{r grossIncomeTotals, include=FALSE}
 totUsaInc <-  sum(incData$PayAmount[incData$PayCurrency=="US"], na.rm=TRUE)
 totCanInc <-  sum(incData$PayAmount[incData$PayCurrency=="CAN"], na.rm=TRUE)
 totEuroInc <-  sum(incData$PayAmount[incData$PayCurrency=="EURO"], na.rm=TRUE)
 
+# Total gross calculated in US dollars based on exchange rate entered in Shiny.
 grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$EUROexchange)
 
 ```
@@ -49,10 +52,85 @@ grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$
 
 **Total EURO Income:** `r paste("$",formatC(totEuroInc, big.mark=",", format = "d"))`
 
-GROSS PROFIT: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars)`
+GROSS PROFIT: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars")`
 
 ## Expenses
 
-```{r incomeSummary, echo=FALSE}
+```{r expenseSummary, message=FALSE, warning=FALSE, echo=FALSE}
 expData <- as.data.frame(params$expenses)
+
+# I could read these from the data, but sometimes there are categories with no expenses that I still want to appear in the report
+reportClasses <- data.frame(Class = c("Office", "Office", "Office",
+																			"Development", "Development",
+																			"Employees", "Employees",
+																			"Member Draw",
+																			"Professional Services", "Professional Services", "Professional Services", "Professional Services",
+																			"Travel",
+																			"Bank Fees",
+																			"Taxes"),
+														Category = c("Computer & Internet", "Postage & Delivery", "Rent",
+																				 "Marketting", "Continuing Education",
+																				 "Contractor", "Salary",
+																				 "Member Draw",
+																				 "Legal", "Insurance", "Payroll", "Accounting",
+																				 "Travel",
+																				 "Bank Service Charge",
+																				 "Payroll Taxes"))
+
+
+# Total by currency
+spendUs <- expData %>%
+	dplyr::filter(ExpCurrency == "US") %>%
+	dplyr::group_by(ExpClass, ExpCategory) %>%
+	dplyr::summarize(TotalUs = round(sum(ExpAmount),2))
+
+spendCan <- expData %>%
+	dplyr::filter(ExpCurrency == "CAN") %>%
+	dplyr::group_by(ExpClass, ExpCategory) %>%
+	dplyr::summarize(TotalCan = round(sum(ExpAmount),2))
+
+spendTotal <- left_join(reportClasses, spendUs, by = c("Class"="ExpClass", "Category"="ExpCategory")) %>%
+	left_join(spendCan, by = c("Class"="ExpClass", "Category"="ExpCategory")) %>%
+	dplyr::mutate(TotalUs = ifelse(is.na(TotalUs), 0, TotalUs),
+								TotalCan = ifelse(is.na(TotalCan), 0, TotalCan),
+								exchCanToUs = round(TotalCan * params$CANexchange),
+								`TOTAL (US)` = TotalUs + exchCanToUs) %>%
+	dplyr::select(-exchCanToUs)
+
+# Extract out member draw, because for a sole member LLC this is not an expense
+memberDrawTotal <- dplyr::filter(spendTotal, Class == "Member Draw")
+spendTotal <- dplyr::filter(spendTotal, Class != "Member Draw")
+
+knitr::kable(spendTotal)
+
 ```
+
+```{r incomeTotals, include=FALSE}
+totUsaExp <-  sum(spendTotal$TotalUs)
+totCanExp <-  sum(spendTotal$TotalCan)
+
+totalExp <- sum(spendTotal$`TOTAL (US)`)
+netInc <- grossInc - totalExp
+totalMember <- memberDrawTotal$`TOTAL (US)`
+bizProfits <- netInc - totalMember
+
+```
+
+**Total US Expenses:** `r paste("$",formatC(totUsaExp, big.mark=",", format = "d"))`
+
+**Total CAN Expenses:** `r paste("$",formatC(totCanExp, big.mark=",", format = "d"))`
+
+TOTAL EXPENSES: `r paste("$", formatC(totalExp, big.mark=",", format = "d"), "US dollars")`
+
+## Net Income
+
+**TOTAL NET INCOME:** `r paste("$",formatC(netInc, big.mark=",", format = "d", "US dollars"))`
+
+Of the net income, `r paste("$",formatC(totalMember, big.mark=",", format = "d", "US dollars"))` was transferred to personal accounts as Member Draws.
+
+The final business balance for this period, after subtracting Member Draws, is `r paste("$",formatC(bizProfits, big.mark=",", format = "d", "US dollars"))`.
+
+*Note that all final values in US dollars are near estimates as the exchange rate is applied to income and expenses that remain in the original currency.  Estimates here are solely for the purposes of estimating business value and tax liability in US currency.*
+
+*Note also that this code is for demonstration purposes only and any financial paperwork should be reviewed by an accountand and tax professional.*
+
