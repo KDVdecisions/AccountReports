@@ -19,8 +19,9 @@ ui <- fluidPage(
 		column(3,
 					 wellPanel(style = "background: lightgrey",
 					 fileInput("bizData", "Upload the business data", accept = c(".xlsx")),
-					 textInput("name", "Who is requesting this report?", placeholder = "Enter a name here"),
 					 selectInput("type", "What report is needed?", choices = c("Year to date")),
+					 numericInput("CANexchange", "Canadian exchange: 1 CAD is worth ____ USD", value=0.789),
+					 numericInput("EUROexchange", "Euro exchange: 1 EURO is worth ____ USD", value=1.197),
 					 downloadButton("report", "Generate Report")
 					 )
 		),
@@ -245,7 +246,10 @@ server <- function(input, output){
 			file.copy("Templates/YearToDate_Account_Report.Rmd", tempReport, overwrite = TRUE)
 			
 			# Set up parameters to pass to Rmd document
-			params <- list(name = input$name, incData = biz$INCOME, expData = biz$EXPENSES)
+			params <- list(income = biz$INCOME, 
+										 expenses = biz$EXPENSES, 
+										 CANexchange = input$CANexchange,
+										 EUROexchange = input$EUROexchange)
 			
 			# Knit the document, passing in the `params` list, and eval it in a
 			# child of the global environment (this isolates the code in the document

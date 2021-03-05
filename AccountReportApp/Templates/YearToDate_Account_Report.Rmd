@@ -3,26 +3,56 @@ title: "Profit & Loss"
 subtitle: "Year-to-Date"
 output: word_document
 params:
-  name: NA
-  incStatus: NA
+  CANexchange: NA
+  EUROexchange: NA
+  income: NA
+  expenses: NA
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
+library(dplyr)
 ```
-
-**Report requested by:** `r params$name`
 
 **Financial status as of:** `r Sys.Date()`
 
-This report includes income and expense tracking from all accounts, US and Canadian.  Income is reported based on payment date to align with tax liability.  Expenses are reported based on withdrawal date (checking) or transaction date (credit).
+This report includes income and expense tracking from all business accounts n all currencies (US, CAN, and EURO).  Income is reported based on payment date to align with tax liability.  Expenses are reported based on withdrawal date (checking) or transaction date (credit).
 
 This document serves an example of how to render a custom report from Shiny.
 
-# Income
+# Profit and Loss Report
 
-```{r incomeSummary, echo=FALSE}
-as.data.frame(params$incStatus)
+## Income
+
+```{r incometable, echo=FALSE}
+incData <- as.data.frame(params$income) %>%
+	dplyr::arrange(PayCurrency, PayDate) %>%
+	dplyr::select(PayDate, Client, InvNum, PayAmount, PayCurrency)
+profit <- incData %>%
+	dplyr::filter(!is.na(PayAmount)) # this removes rows of pending payments
+knitr::kable(incData)
 ```
 
+```{r incomeTotals, include=FALSE}
+totUsaInc <-  sum(incData$PayAmount[incData$PayCurrency=="US"], na.rm=TRUE)
+totCanInc <-  sum(incData$PayAmount[incData$PayCurrency=="CAN"], na.rm=TRUE)
+totEuroInc <-  sum(incData$PayAmount[incData$PayCurrency=="EURO"], na.rm=TRUE)
+
+grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$EUROexchange)
+
+```
+
+
+**Total US Income:** `r paste("$",formatC(totUsaInc, big.mark=",", format = "d"))`
+
+**Total CAN Income:** `r paste("$",formatC(totCanInc, big.mark=",", format = "d"))`
+
+**Total EURO Income:** `r paste("$",formatC(totEuroInc, big.mark=",", format = "d"))`
+
+GROSS PROFIT: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars)`
+
+## Expenses
+
+```{r incomeSummary, echo=FALSE}
+expData <- as.data.frame(params$expenses)
+```
