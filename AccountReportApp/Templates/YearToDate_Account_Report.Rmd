@@ -24,15 +24,33 @@ This document serves an example of how to render a custom report from Shiny.
 
 ## Income
 
-```{r incometable, echo=FALSE}
+```{r incomeTables, echo=FALSE}
 incData <- as.data.frame(params$income) 
 
 # Profit in cash accounting is only money received, so remove pending payments
-profit <- incData %>%
+bizInc <- incData %>%
+	dplyr::filter(IncType %in% c("Consulting", "Teaching")) %>%
 	dplyr::arrange(PayCurrency, PayDate) %>%
-	dplyr::select(PayDate, Client, InvNum, PayAmount, PayCurrency) %>%
+	dplyr::select(PayDate, IncType, Client, InvNum, PayAmount, PayCurrency) %>%
 	dplyr::filter(!is.na(PayDate))
-knitr::kable(profit)
+
+otherInc <- incData %>%
+	dplyr::filter(!IncType %in% c("Consulting", "Teaching")) %>%
+	dplyr::arrange(PayCurrency, PayDate) %>%
+	dplyr::select(PayDate, IncType, PayAmount, PayCurrency) %>%
+	dplyr::filter(!is.na(PayDate))
+```
+
+### Business Contract Income
+
+```{r earnedIncome, echo=FALSE}
+knitr::kable(bizInc)
+```
+
+### Other Income
+
+```{r otherIncome, echo=FALSE}
+knitr::kable(otherInc)
 ```
 
 ```{r grossIncomeTotals, include=FALSE}
@@ -45,6 +63,7 @@ grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$
 
 ```
 
+### Total Gross Income
 
 **Total US Income:** `r paste("$",formatC(totUsaInc, big.mark=",", format = "d"))`
 
@@ -52,9 +71,11 @@ grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$
 
 **Total EURO Income:** `r paste("$",formatC(totEuroInc, big.mark=",", format = "d"))`
 
-GROSS PROFIT: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars")`
+GROSS INCOME: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars")`
 
 ## Expenses
+
+### Summary by Expense Category
 
 ```{r expenseSummary, message=FALSE, warning=FALSE, echo=FALSE}
 expData <- as.data.frame(params$expenses)
@@ -115,6 +136,8 @@ totalMember <- memberDrawTotal$`TOTAL (US)`
 bizProfits <- netInc - totalMember
 
 ```
+
+### Total Business Expenses
 
 **Total US Expenses:** `r paste("$",formatC(totUsaExp, big.mark=",", format = "d"))`
 

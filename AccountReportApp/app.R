@@ -113,7 +113,7 @@ server <- function(input, output){
 		req(file)
 		validate(need(ext == "xlsx", "Please upload an Excel file"))
 		biz$INCOME <- read_excel(file$datapath, sheet="Income", 
-														 col_types = c("date", "text", "text", "numeric", "numeric", 
+														 col_types = c("date", "text", "text", "text", "numeric", "numeric", 
 														 							"text", "date", "numeric", "text", "text", 
 														 							"numeric", "numeric"))
 		biz$EXPENSES <- read_excel(file$datapath, sheet="Expenses",
@@ -137,6 +137,7 @@ server <- function(input, output){
 	incStatus <- reactive({
 		req(input$bizData)
 		byCurrency <- biz$INCOME %>%
+			dplyr::filter(IncType %in% c("Consulting", "Teaching")) %>%
 			dplyr::group_by(InvCurrency) %>%
 			dplyr::summarize(INVOICED = round(sum(InvAmount),2),
 								PAID = round(sum(PayAmount, na.rm=TRUE),2),
