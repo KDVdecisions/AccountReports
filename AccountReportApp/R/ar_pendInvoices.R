@@ -2,7 +2,7 @@
 
 ar_pendInvoices <- function(incomeDf){
 	incomeDf %>%
-						dplyr::filter(is.na(PayDate)) %>%
+						dplyr::filter(!is.na(InvNum) & is.na(PayDate)) %>%
 						dplyr::select(InvNum, Client, InvAmount, InvCurrency, InvDate) %>%
 						dplyr::arrange(InvDate)
 }
