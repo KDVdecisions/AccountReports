@@ -7,6 +7,7 @@ params:
   EUROexchange: NA
   income: NA
   expenses: NA
+  dates: NA
 ---
 
 ```{r setup, include=FALSE}
@@ -15,7 +16,8 @@ library(dplyr)
 library(knitr)
 ```
 
-**Financial status as of:** `r Sys.Date()`
+**Report Period:** `r params$dates[1]` to `r params$dates[2]`
+*Report Generated:* `r Sys.Date()`
 
 This report includes income and expense tracking from all business accounts n all currencies (US, CAN, and EURO).  Income is reported based on payment date to align with tax liability.  Expenses are reported based on withdrawal date (checking) or transaction date (credit).
 
@@ -108,11 +110,10 @@ spendTotal <- left_join(reportClasses, spendUs, by = c("ExpClass", "ExpCategory"
 								`TOTAL (US)` = TotalUs + exchCanToUs) %>%
 	dplyr::select(-exchCanToUs)
 
-# Extract out member draw, because for a sole member LLC this is not an expense
-# Extract out transfers, if present, because this is not an expense
+# Extract out member draw, because for a sole member LLC this is not an expense - but keep to report
+# Extract out transfers and perdiem expenses, if present, because transfers are not an expense and per diem is calculated elsewhere
 memberDrawTotal <- dplyr::filter(spendTotal, ExpClass == "Member Draw")
-transferTotal <- dplyr::filter(spendTotal, ExpClass %in% c("Transfer"))
-spendTotal <- dplyr::filter(spendTotal, !ExpClass %in% c("Member Draw", "Transfer"))
+spendTotal <- dplyr::filter(spendTotal, !ExpClass %in% c("Member Draw", "Transfer"), !ExpCategory %in% c("Per Diem Expense"))
 
 ```
 
