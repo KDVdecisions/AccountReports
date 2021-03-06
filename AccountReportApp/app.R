@@ -12,6 +12,7 @@ flags <- c(
 
 source("R/ar_paidInvoices.R")
 source("R/ar_pendInvoices.R")
+source("R/ar_otherIncome.R")
 
 ui <- fluidPage(
 	tags$head(tags$style('h1 {color:red;}')),
@@ -150,13 +151,19 @@ server <- function(input, output, session){
 	output$paidIncTable <- renderDataTable({
 		req(input$bizData, input$date)
 		req(!is.null(biz$INCOME), cancelOutput = TRUE)
-		datatable(ar_paidInvoices(biz$INCOME))
+		datatable(ar_paidInvoices(biz$INCOME, minDate=input$date[1], maxDate=input$date[2]))
 	})
 	
 	output$pendIncTable <- renderDataTable({
 		req(input$bizData, input$date)
 		req(!is.null(biz$INCOME), cancelOutput = TRUE)
-		datatable(ar_pendInvoices(biz$INCOME))
+		datatable(ar_pendInvoices(biz$INCOME, minDate=input$date[1], maxDate=input$date[2]))
+	})
+	
+	output$otherIncTable <- renderDataTable({
+		req(input$bizData, input$date)
+		req(!is.null(biz$INCOME), cancelOutput = TRUE)
+		datatable(ar_otherIncome(biz$INCOME, minDate=input$date[1], maxDate=input$date[2]))
 	})
 	
 	incStatus <- reactive({
