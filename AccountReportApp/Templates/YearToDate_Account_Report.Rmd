@@ -12,6 +12,7 @@ params:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
+library(knitr)
 ```
 
 **Financial status as of:** `r Sys.Date()`
@@ -20,12 +21,29 @@ This report includes income and expense tracking from all business accounts n al
 
 This document serves an example of how to render a custom report from Shiny.
 
-# Profit and Loss Report
+# Gross Income
 
-## Income
+```{r grossIncomeTotals, include=FALSE}
+incData <- as.data.frame(params$income) 
+totUsaInc <-  sum(incData$PayAmount[incData$PayCurrency=="US"], na.rm=TRUE)
+totCanInc <-  sum(incData$PayAmount[incData$PayCurrency=="CAN"], na.rm=TRUE)
+totEuroInc <-  sum(incData$PayAmount[incData$PayCurrency=="EURO"], na.rm=TRUE)
+
+# Total gross calculated in US dollars based on exchange rate entered in Shiny.
+grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$EUROexchange)
+
+```
+
+**`r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars")`**
+
+ - *Total US Income:* `r paste("$",formatC(totUsaInc, big.mark=",", format = "d"))`
+
+ - *Total CAN Income:* `r paste("$",formatC(totCanInc, big.mark=",", format = "d"))`
+
+ - *Total EURO Income:* `r paste("$",formatC(totEuroInc, big.mark=",", format = "d"))`
+
 
 ```{r incomeTables, echo=FALSE}
-incData <- as.data.frame(params$income) 
 
 # Profit in cash accounting is only money received, so remove pending payments
 bizInc <- incData %>%
@@ -41,77 +59,49 @@ otherInc <- incData %>%
 	dplyr::filter(!is.na(PayDate))
 ```
 
-### Business Contract Income
+## Summary of Income from Contracted Work
 
-```{r earnedIncome, echo=FALSE}
-knitr::kable(bizInc)
+```{r contractSummary, echo=FALSE}
+contractSummary <- bizInc %>%
+	dplyr::group_by(PayCurrency, Client) %>%
+	dplyr::summarize(Total = sum(PayAmount), .groups = 'drop')
+
+knitr::kable(contractSummary)
 ```
 
-### Other Income
+## Summary of Income from Other Sources
 
-```{r otherIncome, echo=FALSE}
-knitr::kable(otherInc)
+```{r otherIncomeSummary, echo=FALSE}
+otherSummary <- otherInc %>%
+	dplyr::group_by(PayCurrency, IncType) %>%
+	dplyr::summarize(Total = sum(PayAmount), .groups = 'drop')
+knitr::kable(otherSummary)
 ```
 
-```{r grossIncomeTotals, include=FALSE}
-totUsaInc <-  sum(incData$PayAmount[incData$PayCurrency=="US"], na.rm=TRUE)
-totCanInc <-  sum(incData$PayAmount[incData$PayCurrency=="CAN"], na.rm=TRUE)
-totEuroInc <-  sum(incData$PayAmount[incData$PayCurrency=="EURO"], na.rm=TRUE)
 
-# Total gross calculated in US dollars based on exchange rate entered in Shiny.
-grossInc <- totUsaInc + (totCanInc * params$CANexchange) + (totEuroInc * params$EUROexchange)
+# Expenses
 
-```
-
-### Total Gross Income
-
-**Total US Income:** `r paste("$",formatC(totUsaInc, big.mark=",", format = "d"))`
-
-**Total CAN Income:** `r paste("$",formatC(totCanInc, big.mark=",", format = "d"))`
-
-**Total EURO Income:** `r paste("$",formatC(totEuroInc, big.mark=",", format = "d"))`
-
-GROSS INCOME: `r paste("$", formatC(grossInc, big.mark=",", format = "d"), "US dollars")`
-
-## Expenses
-
-### Summary by Expense Category
-
-```{r expenseSummary, message=FALSE, warning=FALSE, echo=FALSE}
+```{r expenseData, include=FALSE}
 expData <- as.data.frame(params$expenses)
 
-# I could read these from the data, but sometimes there are categories with no expenses that I still want to appear in the report
-reportClasses <- data.frame(Class = c("Office", "Office", "Office",
-																			"Development", "Development",
-																			"Employees", "Employees",
-																			"Member Draw",
-																			"Professional Services", "Professional Services", "Professional Services", "Professional Services",
-																			"Travel",
-																			"Bank Fees",
-																			"Taxes"),
-														Category = c("Computer & Internet", "Postage & Delivery", "Rent",
-																				 "Marketting", "Continuing Education",
-																				 "Contractor", "Salary",
-																				 "Member Draw",
-																				 "Legal", "Insurance", "Payroll", "Accounting",
-																				 "Travel",
-																				 "Bank Service Charge",
-																				 "Payroll Taxes"))
-
-
+reportClasses <- params$expenses %>%
+	dplyr::select(ExpClass, ExpCategory) %>%
+	dplyr::distinct() %>%
+	dplyr::arrange(ExpClass, ExpCategory)
+	
 # Total by currency
 spendUs <- expData %>%
 	dplyr::filter(ExpCurrency == "US") %>%
 	dplyr::group_by(ExpClass, ExpCategory) %>%
-	dplyr::summarize(TotalUs = round(sum(ExpAmount),2))
+	dplyr::summarize(TotalUs = round(sum(ExpAmount),2), .groups = 'drop')
 
 spendCan <- expData %>%
 	dplyr::filter(ExpCurrency == "CAN") %>%
 	dplyr::group_by(ExpClass, ExpCategory) %>%
-	dplyr::summarize(TotalCan = round(sum(ExpAmount),2))
+	dplyr::summarize(TotalCan = round(sum(ExpAmount),2), .groups = 'drop')
 
-spendTotal <- left_join(reportClasses, spendUs, by = c("Class"="ExpClass", "Category"="ExpCategory")) %>%
-	left_join(spendCan, by = c("Class"="ExpClass", "Category"="ExpCategory")) %>%
+spendTotal <- left_join(reportClasses, spendUs, by = c("ExpClass", "ExpCategory")) %>%
+	left_join(spendCan, by = c("ExpClass", "ExpCategory")) %>%
 	dplyr::mutate(TotalUs = ifelse(is.na(TotalUs), 0, TotalUs),
 								TotalCan = ifelse(is.na(TotalCan), 0, TotalCan),
 								exchCanToUs = round(TotalCan * params$CANexchange),
@@ -119,35 +109,48 @@ spendTotal <- left_join(reportClasses, spendUs, by = c("Class"="ExpClass", "Cate
 	dplyr::select(-exchCanToUs)
 
 # Extract out member draw, because for a sole member LLC this is not an expense
-memberDrawTotal <- dplyr::filter(spendTotal, Class == "Member Draw")
-spendTotal <- dplyr::filter(spendTotal, Class != "Member Draw")
-
-knitr::kable(spendTotal)
+# Extract out transfers, if present, because this is not an expense
+memberDrawTotal <- dplyr::filter(spendTotal, ExpClass == "Member Draw")
+transferTotal <- dplyr::filter(spendTotal, ExpClass %in% c("Transfer"))
+spendTotal <- dplyr::filter(spendTotal, !ExpClass %in% c("Member Draw", "Transfer"))
 
 ```
 
-```{r incomeTotals, include=FALSE}
+```{r expenseTotals, include=FALSE}
 totUsaExp <-  sum(spendTotal$TotalUs)
 totCanExp <-  sum(spendTotal$TotalCan)
 
 totalExp <- sum(spendTotal$`TOTAL (US)`)
+```
+
+**`r paste("$", formatC(totalExp, big.mark=",", format = "d"), "US dollars")`**
+
+ - *Total US Expenses:* `r paste("$",formatC(totUsaExp, big.mark=",", format = "d"))`
+
+ - *Total CAN Expenses:* `r paste("$",formatC(totCanExp, big.mark=",", format = "d"))`
+
+
+## Summary of Expenses (Grouped by Class)
+
+```{r expenseSummary, echo=FALSE}
+expenseSummary <- spendTotal %>%
+	dplyr::group_by(ExpClass) %>%
+	dplyr::summarize(`TOTAL (US)` = sum(`TOTAL (US)`), .groups = 'drop')
+
+knitr::kable(expenseSummary)
+```
+
+# Net Income
+
+```{r netINcome, echo=FALSE}
 netInc <- grossInc - totalExp
 totalMember <- memberDrawTotal$`TOTAL (US)`
 bizProfits <- netInc - totalMember
 
 ```
 
-### Total Business Expenses
 
-**Total US Expenses:** `r paste("$",formatC(totUsaExp, big.mark=",", format = "d"))`
-
-**Total CAN Expenses:** `r paste("$",formatC(totCanExp, big.mark=",", format = "d"))`
-
-TOTAL EXPENSES: `r paste("$", formatC(totalExp, big.mark=",", format = "d"), "US dollars")`
-
-## Net Income
-
-**TOTAL NET INCOME:** `r paste("$",formatC(netInc, big.mark=",", format = "d"), "US dollars")`
+**`r paste("$",formatC(netInc, big.mark=",", format = "d"), "US dollars")`**
 
 Of the net income, `r paste("$",formatC(totalMember, big.mark=",", format = "d"), "US dollars")` was transferred to personal accounts as Member Draws.
 
@@ -157,3 +160,22 @@ The final business balance for this period, after subtracting Member Draws, is `
 
 *Note also that this code is for demonstration purposes only and any financial paperwork should be reviewed by an accountand and tax professional.*
 
+# Appendix
+
+## Business Contract Income
+
+```{r earnedIncome, echo=FALSE}
+knitr::kable(bizInc)
+```
+
+## Other Income
+
+```{r otherIncome, echo=FALSE}
+knitr::kable(otherInc)
+```
+
+## Expenses (Grouped by Category)
+
+```{r allExpenses, echo=FALSE}
+knitr::kable(spendTotal)
+```

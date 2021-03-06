@@ -53,13 +53,14 @@ ui <- fluidPage(
 					 					 	)
 					 					 ), # end of wellPanel
 					 					 hr(),
-					 					 fluidRow(column(12, align="center", h1("ALL INCOME"))),
-					 					 hr(),
-					 					 h3("Paid"),
+					 					 fluidRow(column(12, align="center", h1("CONSULTING INCOME"))),
+					 					 h3("Paid Invoices"),
 					 					 dataTableOutput("paidIncTable"),
 					 					 hr(),
-					 					 h3("Pending"),
-					 					 dataTableOutput("pendIncTable")
+					 					 h3("Pending Invoices"),
+					 					 dataTableOutput("pendIncTable"),
+					 					 fluidRow(column(12, align="center", h1("OTHER INCOME"))),
+					 					 dataTableOutput("otherIncTable")
 					 	),# end income tab 
 					 	
 					 	# Expense tab ----
@@ -115,7 +116,7 @@ server <- function(input, output){
 		biz$INCOME <- read_excel(file$datapath, sheet="Income", 
 														 col_types = c("date", "text", "text", "text", "numeric", "numeric", 
 														 							"text", "date", "numeric", "text", "text", 
-														 							"numeric", "numeric"))
+														 							"numeric", "text"))
 		biz$EXPENSES <- read_excel(file$datapath, sheet="Expenses",
 													col_types = c("date", rep("text", times=6), "numeric", "text"))
 		biz$CLIENTS <- read_excel(file$datapath, sheet="Clients",
