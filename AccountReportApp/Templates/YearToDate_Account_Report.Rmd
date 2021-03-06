@@ -17,6 +17,7 @@ library(knitr)
 ```
 
 **Report Period:** `r params$dates[1]` to `r params$dates[2]`
+
 *Report Generated:* `r Sys.Date()`
 
 This report includes income and expense tracking from all business accounts n all currencies (US, CAN, and EURO).  Income is reported based on payment date to align with tax liability.  Expenses are reported based on withdrawal date (checking) or transaction date (credit).
